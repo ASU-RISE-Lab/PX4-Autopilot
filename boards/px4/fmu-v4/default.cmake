@@ -77,6 +77,7 @@ px4_add_board(
 		mc_pos_control
 		mc_rate_control
 		#micrortps_bridge
+		mocap_estimator
 		navigator
 		rc_update
 		rover_pos_control

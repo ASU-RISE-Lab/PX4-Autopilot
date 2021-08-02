@@ -52,7 +52,7 @@
 #define LOOPS -1
 #define SLEEP_MS 1
 #define BAUDRATE 460800
-#define DEVICE "/dev/ttyACM0"
+#define DEVICE "/dev/ttyS2"
 #define POLL_MS 1
 #define IP "127.0.0.1"
 #define DEFAULT_RECV_PORT 2019

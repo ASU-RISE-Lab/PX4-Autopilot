@@ -70,14 +70,14 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		# local_position_estimator
 		logger
 		mavlink
 		mc_att_control
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
-		#micrortps_bridge
+		micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control

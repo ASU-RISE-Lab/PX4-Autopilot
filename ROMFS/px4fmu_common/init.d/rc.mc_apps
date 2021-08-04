@@ -21,7 +21,7 @@ then
 	if attitude_estimator_q start
 	then
 		echo "WARN [init] Estimator LPE unsupported, EKF2 recommended."
-		local_position_estimator start
+		# local_position_estimator start
 	else
 		echo "ERROR [init] Estimator LPE not available. Using EKF2"
 		param set SYS_MC_EST_GROUP 2

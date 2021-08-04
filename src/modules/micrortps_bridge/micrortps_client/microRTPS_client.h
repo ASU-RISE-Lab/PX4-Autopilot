@@ -51,7 +51,7 @@
 
 #define LOOPS			-1
 #define SLEEP_US		1000
-#define BAUDRATE		460800
+#define BAUDRATE		921600 //460800
 #define MAX_DATA_RATE		10000000
 #define DEVICE		"/dev/ttyACM0"
 #define POLL_MS		1

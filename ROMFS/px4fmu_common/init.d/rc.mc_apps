@@ -21,7 +21,8 @@ then
 	if attitude_estimator_q start
 	then
 		echo "WARN [init] Estimator LPE unsupported, EKF2 recommended."
-		local_position_estimator start
+		echo "JJ changed this, disregard"
+		# local_position_estimator start
 	else
 		echo "ERROR [init] Estimator LPE not available. Using EKF2"
 		param set SYS_MC_EST_GROUP 2
@@ -69,3 +70,5 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+micrortps_client start -d /dev/ttyS2 -b 921600

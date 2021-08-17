@@ -1,191 +1,225 @@
-/****************************************************************************
- *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
-
 #include "garrard_mocap_pose_estimator.hpp"
 
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/posix.h>
+GarrardMocapPoseEstimator::GarrardMocapPoseEstimator() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::SPI0)
+{
+}
 
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_combined.h>
+GarrardMocapPoseEstimator::~GarrardMocapPoseEstimator()
+{
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+}
 
+bool GarrardMocapPoseEstimator::init()
+{
+	// execute Run() on every sensor_accel publication
+	if (!_mocap_sub.registerCallback()) {
+		PX4_ERR("_mocap_sub callback registration failed");
+		return false;
+	}
+
+	// alternatively, Run on fixed interval
+	ScheduleOnInterval(10000_us); // 2000 us interval, 200 Hz rate
+
+	return true;
+}
+
+void GarrardMocapPoseEstimator::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
+
+	perf_begin(_loop_perf);
+	perf_count(_loop_interval_perf);
+
+	// Check if parameters have changed
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
+	}
+
+	struct orb_test_s data;
+
+	if (_mocap_sub.updated())
+	{
+		if(_attitude_sub.copy(&att) && _mocap_sub.copy(&mocap_odom))
+		{
+			//****************Position and heading data**************//
+			local_pose.x = mocap_odom.x;
+			local_pose.y = -mocap_odom.y;
+			local_pose.z = -mocap_odom.z;
+
+
+			att.q[2] = -att.q[2];
+			att.q[3] = -att.q[3];
+
+			local_pose.heading = matrix::Eulerf(matrix::Quatf(att.q)).psi();
+
+			//************Velocity estimation**************//
+			// Shift position arrays
+			x_k[2] = x_k[1];
+			x_k[1] = x_k[0];
+			y_k[2] = y_k[1];
+			y_k[1] = y_k[0];
+			z_k[2] = z_k[1];
+			z_k[1] = z_k[0];
+
+			// Append new position data
+			x_k[0] = mocap_odom.x;
+			y_k[0] = mocap_odom.y;
+			z_k[0] = mocap_odom.z;
+
+			// Shift velocity arrays
+			vx_k[2] = vx_k[1];
+			vx_k[1] = vx_k[0];
+			vy_k[2] = vy_k[1];
+			vy_k[1] = vy_k[0];
+			vz_k[2] = vz_k[1];
+			vz_k[1] = vz_k[0];
+
+			// Compute time period
+			time_current = hrt_absolute_time()/1000000.0;
+			uint64_t T = time_current - time_prev;
+			time_prev = time_current;
+
+			// Get values from parameters
+			float wx = _param_wx.get();
+			float wy = _param_wy.get();
+			float wz = _param_wz.get();
+			float xx = _param_xx.get();
+			float xy = _param_xy.get();
+			float xz = _param_xz.get();
+
+			// Estimate velocity
+			vx_k[0] = 	(2*T*wx*wx*x_k[0]
+					-2*T*wx*wx*x_k[2]
+					-(4-4*T*xx*wx+T*T*wx*wx)*vx_k[2]
+					-(2*T*T*wx*wx-8)*vx_k[1])
+					/
+					(4+4*T*xx*wx+T*T*wx*wx);
+			vy_k[0] = 	(2*T*wy*wy*y_k[0]
+					-2*T*wy*wy*y_k[2]
+					-(4-4*T*xy*wy+T*T*wy*wy)*vy_k[2]
+					-(2*T*T*wy*wy-8)*vy_k[1])
+					/
+					(4+4*T*xy*wy+T*T*wy*wy);
+			vz_k[0] = 	(2*T*wz*wz*z_k[0]
+					-2*T*wz*wz*z_k[2]
+					-(4-4*T*xz*wz+T*T*wz*wz)*vz_k[2]
+					-(2*T*T*wz*wz-8)*vz_k[1])
+					/
+					(4+4*T*xz*wz+T*T*wz*wz);
+
+			local_pose.vx = vx_k[0];
+			local_pose.vy = vy_k[0];
+			local_pose.vz = vz_k[0];
+
+			_local_pose_pub.publish(local_pose);
+		}
+		else
+		{
+			data.val = 2;
+			data.timestamp = hrt_absolute_time();
+			_orb_test_pub.publish(data);
+		}
+
+	}
+	else
+	{
+		data.val = 3;
+		data.timestamp = hrt_absolute_time();
+		_orb_test_pub.publish(data);
+	}
+
+
+	// Example
+	//  update vehicle_status to check arming state
+	// if (_vehicle_status_sub.updated()) {
+	// 	vehicle_status_s vehicle_status;
+
+	// 	if (_vehicle_status_sub.copy(&vehicle_status)) {
+
+	// 		const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+	// 		if (armed && !_armed) {
+	// 			PX4_WARN("vehicle armed due to %d", vehicle_status.latest_arming_reason);
+
+	// 		} else if (!armed && _armed) {
+	// 			PX4_INFO("vehicle disarmed due to %d", vehicle_status.latest_disarming_reason);
+	// 		}
+
+	// 		_armed = armed;
+	// 	}
+	// }
+
+
+	// Example
+	//  grab latest accelerometer data
+	// if (_sensor_accel_sub.updated()) {
+	// 	sensor_accel_s accel;
+
+	// 	if (_sensor_accel_sub.copy(&accel)) {
+	// 		// DO WORK
+
+	// 		// access parameter value (SYS_AUTOSTART)
+	// 		if (_param_sys_autostart.get() == 1234) {
+	// 			// do something if SYS_AUTOSTART is 1234
+	// 		}
+	// 	}
+	// }
+
+
+	// Example
+	//  publish some data
+	// orb_test_s data{};
+	// data.val = 314159;
+	// data.timestamp = hrt_absolute_time();
+	// _orb_test_pub.publish(data);
+
+
+	perf_end(_loop_perf);
+}
+
+int GarrardMocapPoseEstimator::task_spawn(int argc, char *argv[])
+{
+	GarrardMocapPoseEstimator *instance = new GarrardMocapPoseEstimator();
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
 
 int GarrardMocapPoseEstimator::print_status()
 {
-	PX4_INFO("Running");
-	// TODO: print additional runtime information about the state of the module
-
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_interval_perf);
 	return 0;
 }
 
 int GarrardMocapPoseEstimator::custom_command(int argc, char *argv[])
 {
-	/*
-	if (!is_running()) {
-		print_usage("not running");
-		return 1;
-	}
-
-	// additional custom commands can be handled like this:
-	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
-		return 0;
-	}
-	 */
-
 	return print_usage("unknown command");
-}
-
-
-int GarrardMocapPoseEstimator::task_spawn(int argc, char *argv[])
-{
-	_task_id = px4_task_spawn_cmd("module",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
-
-	return 0;
-}
-
-GarrardMocapPoseEstimator *GarrardMocapPoseEstimator::instantiate(int argc, char *argv[])
-{
-	int example_param = 0;
-	bool example_flag = false;
-	bool error_flag = false;
-
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
-
-	// parse CLI arguments
-	while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'p':
-			example_param = (int)strtol(myoptarg, nullptr, 10);
-			break;
-
-		case 'f':
-			example_flag = true;
-			break;
-
-		case '?':
-			error_flag = true;
-			break;
-
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
-		}
-	}
-
-	if (error_flag) {
-		return nullptr;
-	}
-
-	GarrardMocapPoseEstimator *instance = new GarrardMocapPoseEstimator(example_param, example_flag);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-	}
-
-	return instance;
-}
-
-GarrardMocapPoseEstimator::GarrardMocapPoseEstimator(int example_param, bool example_flag)
-	: ModuleParams(nullptr)
-{
-}
-
-void GarrardMocapPoseEstimator::run()
-{
-	// Example: run the loop synchronized to the sensor_combined topic publication
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
-
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = sensor_combined_sub;
-	fds[0].events = POLLIN;
-
-	// initialize parameters
-	parameters_update(true);
-
-	while (!should_exit()) {
-
-		// wait for up to 1000ms for data
-		int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 1000);
-
-		if (pret == 0) {
-			// Timeout: let the loop run anyway, don't do `continue` here
-
-		} else if (pret < 0) {
-			// this is undesirable but not much we can do
-			PX4_ERR("poll error %d, %d", pret, errno);
-			px4_usleep(50000);
-			continue;
-
-		} else if (fds[0].revents & POLLIN) {
-
-			struct sensor_combined_s sensor_combined;
-			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
-			// TODO: do something with the data...
-
-		}
-
-		parameters_update();
-	}
-
-	orb_unsubscribe(sensor_combined_sub);
-}
-
-void GarrardMocapPoseEstimator::parameters_update(bool force)
-{
-	// check for parameter updates
-	if (_parameter_update_sub.updated() || force) {
-		// clear update
-		parameter_update_s update;
-		_parameter_update_sub.copy(&update);
-
-		// update parameters from storage
-		updateParams();
-	}
 }
 
 int GarrardMocapPoseEstimator::print_usage(const char *reason)
@@ -197,29 +231,17 @@ int GarrardMocapPoseEstimator::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Section that describes the provided module functionality.
-
-This is a template for a module running as a task in the background with start/stop/status functionality.
-
-### Implementation
-Section describing the high-level implementation of this module.
-
-### Examples
-CLI usage example:
-$ module start -f -p 42
-
+Example of a simple module running out of a work queue.
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("module", "template");
+	PRINT_MODULE_USAGE_NAME("garrard_mocap_pose_estimator", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int garrard_mocap_pose_estimator_main(int argc, char *argv[])
+extern "C" __EXPORT int garrard_mocap_pose_estimator_main(int argc, char *argv[])
 {
 	return GarrardMocapPoseEstimator::main(argc, argv);
 }

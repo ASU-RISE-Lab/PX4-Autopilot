@@ -67,6 +67,8 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		garrard_fake_mocap
+		garrard_mocap_pose_estimator
 		gyro_calibration
 		gyro_fft
 		land_detector
@@ -86,8 +88,8 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
+		# uuv_att_control
+		# uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -122,16 +124,16 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
-		fake_imu
-		fake_magnetometer
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		hello
-		hwtest # Hardware test
+		# fake_gps
+		# fake_imu
+		# fake_magnetometer
+		# fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		# hello
+		# hwtest # Hardware test
 		#matlab_csv_serial
-		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		rover_steering_control # Rover example app
-		uuv_example_app
-		work_item
+		# px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		# px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		# rover_steering_control # Rover example app
+		# uuv_example_app
+		# work_item
 	)

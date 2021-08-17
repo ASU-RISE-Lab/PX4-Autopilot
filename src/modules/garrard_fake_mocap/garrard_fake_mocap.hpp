@@ -1,6 +1,6 @@
 #pragma once
 
-#define DEBUG 1
+//#define DEBUG
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>

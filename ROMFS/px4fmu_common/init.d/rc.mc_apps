@@ -71,4 +71,5 @@ mc_pos_control start
 #
 land_detector start multicopter
 
-micrortps_client start -d /dev/ttyS2 -b 921600
+micrortps_client start -d /dev/ttyS2 -b 1500000 -f
+garrard_mocap_pose_estimator start

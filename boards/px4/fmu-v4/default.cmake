@@ -65,6 +65,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		garrard_fake_mocap
 		garrard_mocap_pose_estimator
 		gyro_calibration
 		gyro_fft

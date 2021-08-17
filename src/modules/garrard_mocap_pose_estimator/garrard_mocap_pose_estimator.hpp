@@ -1,6 +1,6 @@
 #pragma once
 
-#define DEBUG 1
+//#define DEBUG
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -59,11 +59,11 @@ private:
 	float vx_k[3];
 	float vy_k[3];
 	float vz_k[3];
-	uint64_t time_prev = 0;
+	uint64_t time_prev = hrt_absolute_time()/1000000.0;;
 	uint64_t time_current;
-	struct vehicle_odometry_s mocap_odom;
-	struct vehicle_local_position_s local_pose;
-	struct vehicle_attitude_s att;
+	struct vehicle_odometry_s mocap_odom = {};
+	struct vehicle_local_position_s local_pose = {};
+	struct vehicle_attitude_s att = {};
 
 	// Publications
 	#ifdef DEBUG

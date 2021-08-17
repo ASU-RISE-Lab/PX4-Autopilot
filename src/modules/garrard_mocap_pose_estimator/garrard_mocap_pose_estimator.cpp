@@ -21,7 +21,7 @@ bool GarrardMocapPoseEstimator::init()
 	}
 
 	// alternatively, Run on fixed interval
-	ScheduleOnInterval(10000_us); // 2000 us interval, 200 Hz rate
+	// ScheduleOnInterval(10000_us);
 
 	return true;
 }
@@ -45,22 +45,31 @@ void GarrardMocapPoseEstimator::Run()
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 	}
 
-	struct orb_test_s data;
+	#ifdef DEBUG
+		struct orb_test_s data;
+	#endif
 
 	if (_mocap_sub.updated())
 	{
 		if(_attitude_sub.copy(&att) && _mocap_sub.copy(&mocap_odom))
 		{
 			//****************Position and heading data**************//
+			// micrortps should send data in correct frame. no negatives needed
 			local_pose.x = mocap_odom.x;
-			local_pose.y = -mocap_odom.y;
-			local_pose.z = -mocap_odom.z;
+			local_pose.y = mocap_odom.y;
+			local_pose.z = mocap_odom.z;
 
+			// Yaw angle. https://stackoverflow.com/a/5783030
+			// auto q = mocap_odom.q;
+			// q[1] = 0;
+			// q[3] = 0;
+			// float mag = sqrt(q[0]*q[0] + q[2]*q[2]);
+			// q[0] /= mag;
+			// q[2] /= mag;
+			// float ang = 2*acos(q[0]);
 
-			att.q[2] = -att.q[2];
-			att.q[3] = -att.q[3];
-
-			local_pose.heading = matrix::Eulerf(matrix::Quatf(att.q)).psi();
+			// // local_pose.heading = matrix::Eulerf(matrix::Quatf(mocap_odom.q)).psi();
+			// local_pose.heading = ang;
 
 			//************Velocity estimation**************//
 			// Shift position arrays
@@ -85,9 +94,11 @@ void GarrardMocapPoseEstimator::Run()
 			vz_k[1] = vz_k[0];
 
 			// Compute time period
-			time_current = hrt_absolute_time()/1000000.0;
-			uint64_t T = time_current - time_prev;
+			time_current = hrt_absolute_time();
+			float T = (float)((time_current - time_prev)/1000000.0);
 			time_prev = time_current;
+			local_pose.timestamp = time_current;
+			local_pose.timestamp_sample = (uint64_t)((double)(T)*1000000.0);
 
 			// Get values from parameters
 			float wx = _param_wx.get();
@@ -98,12 +109,12 @@ void GarrardMocapPoseEstimator::Run()
 			float xz = _param_xz.get();
 
 			// Estimate velocity
-			vx_k[0] = 	(2*T*wx*wx*x_k[0]
-					-2*T*wx*wx*x_k[2]
-					-(4-4*T*xx*wx+T*T*wx*wx)*vx_k[2]
-					-(2*T*T*wx*wx-8)*vx_k[1])
+			vx_k[0] = 	((2*T*wx*wx*x_k[0])
+					-(2*T*wx*wx*x_k[2])
+					-((4-(4*T*xx*wx)+(T*T*wx*wx))*vx_k[2])
+					-(((2*T*T*wx*wx)-8)*vx_k[1]))
 					/
-					(4+4*T*xx*wx+T*T*wx*wx);
+					(4+(4*T*xx*wx)+(T*T*wx*wx));
 			vy_k[0] = 	(2*T*wy*wy*y_k[0]
 					-2*T*wy*wy*y_k[2]
 					-(4-4*T*xy*wy+T*T*wy*wy)*vy_k[2]
@@ -121,21 +132,37 @@ void GarrardMocapPoseEstimator::Run()
 			local_pose.vy = vy_k[0];
 			local_pose.vz = vz_k[0];
 
+			//********MISC
+			local_pose.xy_valid = true;
+			local_pose.z_valid = true;
+			local_pose.v_xy_valid = true;
+			local_pose.v_z_valid = true;
+
 			_local_pose_pub.publish(local_pose);
+
+			#ifdef DEBUG
+				data.val = T;
+				data.timestamp = hrt_absolute_time();
+				_orb_test_pub.publish(data);
+			#endif
 		}
 		else
 		{
-			data.val = 2;
-			data.timestamp = hrt_absolute_time();
-			_orb_test_pub.publish(data);
+			#ifdef DEBUG
+				data.val = 2;
+				data.timestamp = hrt_absolute_time();
+				_orb_test_pub.publish(data);
+			#endif
 		}
 
 	}
 	else
 	{
-		data.val = 3;
-		data.timestamp = hrt_absolute_time();
-		_orb_test_pub.publish(data);
+		#ifdef DEBUG
+			data.val = 3;
+			data.timestamp = hrt_absolute_time();
+			_orb_test_pub.publish(data);
+		#endif
 	}
 
 

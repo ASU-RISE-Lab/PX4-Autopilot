@@ -16,11 +16,6 @@ bool WorkItemExample::init()
 {
 	// alternatively, Run on fixed interval
 	ScheduleOnInterval(8333_us); // 120 Hz rate
-
-	fake_mocap_odom.x = 0;
-	fake_mocap_odom.y = 0;
-	fake_mocap_odom.z = 0;
-
 	return true;
 }
 
@@ -39,8 +34,8 @@ void WorkItemExample::Run()
 	fake_mocap_odom.y = cos(hrt_absolute_time()/1000000.0);
 	fake_mocap_odom.z = -sin(hrt_absolute_time()/1000000.0);
 	fake_mocap_odom.local_frame = 0;
-	fake_mocap_odom.q[0] = sin(hrt_absolute_time()/2500000.0);
-	fake_mocap_odom.q[3] = sqrt(1-(fake_mocap_odom.q[0]*fake_mocap_odom.q[0]));
+	// fake_mocap_odom.q[0] = sin(hrt_absolute_time()/2500000.0);
+	// fake_mocap_odom.q[3] = sqrt(1-(fake_mocap_odom.q[0]*fake_mocap_odom.q[0]));
 	fake_mocap_odom.timestamp = hrt_absolute_time();
 	fake_mocap_odom.timestamp_sample = fake_mocap_odom.timestamp;
 

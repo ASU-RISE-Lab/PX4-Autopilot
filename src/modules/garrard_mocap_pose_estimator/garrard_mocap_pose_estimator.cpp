@@ -59,17 +59,7 @@ void GarrardMocapPoseEstimator::Run()
 			local_pose.y = mocap_odom.y;
 			local_pose.z = mocap_odom.z;
 
-			// Yaw angle. https://stackoverflow.com/a/5783030
-			// auto q = mocap_odom.q;
-			// q[1] = 0;
-			// q[3] = 0;
-			// float mag = sqrt(q[0]*q[0] + q[2]*q[2]);
-			// q[0] /= mag;
-			// q[2] /= mag;
-			// float ang = 2*acos(q[0]);
-
-			// // local_pose.heading = matrix::Eulerf(matrix::Quatf(mocap_odom.q)).psi();
-			// local_pose.heading = ang;
+			local_pose.heading = matrix::Eulerf(matrix::Quatf(att.q)).psi();
 
 			//************Velocity estimation**************//
 			// Shift position arrays
@@ -101,12 +91,13 @@ void GarrardMocapPoseEstimator::Run()
 			local_pose.timestamp_sample = (uint64_t)((double)(T)*1000000.0);
 
 			// Get values from parameters
-			float wx = _param_wx.get();
-			float wy = _param_wy.get();
-			float wz = _param_wz.get();
-			float xx = _param_xx.get();
-			float xy = _param_xy.get();
-			float xz = _param_xz.get();
+			// Please let me know how to only update the parameters when they are changed.
+			wx = _param_wx.get();
+			wy = _param_wy.get();
+			wz = _param_wz.get();
+			xx = _param_xx.get();
+			xy = _param_xy.get();
+			xz = _param_xz.get();
 
 			// Estimate velocity
 			vx_k[0] = 	((2*T*wx*wx*x_k[0])
@@ -164,52 +155,6 @@ void GarrardMocapPoseEstimator::Run()
 			_orb_test_pub.publish(data);
 		#endif
 	}
-
-
-	// Example
-	//  update vehicle_status to check arming state
-	// if (_vehicle_status_sub.updated()) {
-	// 	vehicle_status_s vehicle_status;
-
-	// 	if (_vehicle_status_sub.copy(&vehicle_status)) {
-
-	// 		const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-	// 		if (armed && !_armed) {
-	// 			PX4_WARN("vehicle armed due to %d", vehicle_status.latest_arming_reason);
-
-	// 		} else if (!armed && _armed) {
-	// 			PX4_INFO("vehicle disarmed due to %d", vehicle_status.latest_disarming_reason);
-	// 		}
-
-	// 		_armed = armed;
-	// 	}
-	// }
-
-
-	// Example
-	//  grab latest accelerometer data
-	// if (_sensor_accel_sub.updated()) {
-	// 	sensor_accel_s accel;
-
-	// 	if (_sensor_accel_sub.copy(&accel)) {
-	// 		// DO WORK
-
-	// 		// access parameter value (SYS_AUTOSTART)
-	// 		if (_param_sys_autostart.get() == 1234) {
-	// 			// do something if SYS_AUTOSTART is 1234
-	// 		}
-	// 	}
-	// }
-
-
-	// Example
-	//  publish some data
-	// orb_test_s data{};
-	// data.val = 314159;
-	// data.timestamp = hrt_absolute_time();
-	// _orb_test_pub.publish(data);
-
 
 	perf_end(_loop_perf);
 }

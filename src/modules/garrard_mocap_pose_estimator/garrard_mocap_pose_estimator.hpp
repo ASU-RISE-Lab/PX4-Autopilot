@@ -53,12 +53,13 @@ public:
 private:
 	void Run() override;
 
-	float x_k[3];
-	float y_k[3];
-	float z_k[3];
-	float vx_k[3];
-	float vy_k[3];
-	float vz_k[3];
+	float x_k[3] = {};
+	float y_k[3] = {};
+	float z_k[3] = {};
+	float vx_k[3] = {};
+	float vy_k[3] = {};
+	float vz_k[3] = {};
+	float wx, wy, wz, xx, xy, xz;
 	uint64_t time_prev = hrt_absolute_time()/1000000.0;;
 	uint64_t time_current;
 	struct vehicle_odometry_s mocap_odom = {};

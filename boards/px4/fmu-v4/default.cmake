@@ -53,18 +53,18 @@ px4_add_board(
 		tone_alarm
 		uavcan
 	MODULES
-		airspeed_selector
+		# airspeed_selector
 		attitude_estimator_q
 		battery_status
-		camera_feedback
+		# camera_feedback
 		commander
 		dataman
 		ekf2
-		esc_battery
+		# esc_battery
 		events
 		flight_mode_manager
-		fw_att_control
-		fw_pos_control_l1
+		# fw_att_control
+		# fw_pos_control_l1
 		garrard_fake_mocap
 		garrard_mocap_pose_estimator
 		gyro_calibration
@@ -85,11 +85,11 @@ px4_add_board(
 		rover_pos_control
 		sensors
 		sih
-		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
+		# temperature_compensation
+		# uuv_att_control
+		# uuv_pos_control
 		vmount
-		vtol_att_control
+		# vtol_att_control
 	SYSTEMCMDS
 		bl_update
 		#dmesg

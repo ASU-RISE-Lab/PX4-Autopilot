@@ -83,13 +83,6 @@ void GarrardMocapPoseEstimator::Run()
 			vz_k[2] = vz_k[1];
 			vz_k[1] = vz_k[0];
 
-			// Compute time period
-			time_current = hrt_absolute_time();
-			float T = (float)((time_current - time_prev)/1000000.0);
-			time_prev = time_current;
-			local_pose.timestamp = time_current;
-			local_pose.timestamp_sample = (uint64_t)((double)(T)*1000000.0);
-
 			// Get values from parameters
 			// Please let me know how to only update the parameters when they are changed.
 			wx = _param_wx.get();
@@ -98,6 +91,18 @@ void GarrardMocapPoseEstimator::Run()
 			xx = _param_xx.get();
 			xy = _param_xy.get();
 			xz = _param_xz.get();
+
+
+			// Compute time period
+			time_current = hrt_absolute_time();
+			float T = (float)((time_current - time_prev)/1000000.0);
+			time_prev = time_current;
+			local_pose.timestamp = time_current;
+			local_pose.timestamp_sample = (uint64_t)((double)(T)*1000000.0);
+
+			// I'm having problems computing T properly. Using this instead for now.
+			// Instead of hardcoding this, an average of the mocap data can be used per run.
+			T = 1/120.0f;
 
 			// Estimate velocity
 			vx_k[0] = 	((2*T*wx*wx*x_k[0])

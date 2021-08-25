@@ -63,7 +63,7 @@ rtps:
     id: 29
   - msg: input_rc
     id: 30
-    # send: true
+    send: true
   - msg: iridiumsbd_status
     id: 31
   - msg: irlock_report

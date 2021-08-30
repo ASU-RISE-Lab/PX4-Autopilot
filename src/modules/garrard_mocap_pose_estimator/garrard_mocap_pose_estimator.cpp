@@ -1,3 +1,7 @@
+/**
+Some of the logic in the velocity estimator came from https://github.com/flyingmachines/mocap_estimator, written by Shatadal Mishra.
+**/
+
 #include "garrard_mocap_pose_estimator.hpp"
 
 GarrardMocapPoseEstimator::GarrardMocapPoseEstimator() :
@@ -59,7 +63,7 @@ void GarrardMocapPoseEstimator::Run()
 			local_pose.y = mocap_odom.y;
 			local_pose.z = mocap_odom.z;
 
-			local_pose.heading = matrix::Eulerf(matrix::Quatf(att.q)).psi();
+			local_pose.heading = matrix::Eulerf(matrix::Quatf(mocap_odom.q)).psi();
 
 			//************Velocity estimation**************//
 			// Shift position arrays

@@ -43,6 +43,8 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
+hrt_abstime prev_time = 0.0f;
+
 MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -259,6 +261,7 @@ MulticopterRateControl::Run()
 			if (!_vehicle_status.is_vtol) {
 				publishTorqueSetpoint(att_control, angular_velocity.timestamp_sample);
 				publishThrustSetpoint(angular_velocity.timestamp_sample);
+				publishControllerOut(att_control, angular_velocity.timestamp_sample);
 			}
 
 			// scale effort by battery status if enabled
@@ -318,6 +321,29 @@ void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_
 	v_thrust_sp.xyz[2] = PX4_ISFINITE(_thrust_sp) ? -_thrust_sp : 0.0f; // Z is Down
 
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+}
+
+void MulticopterRateControl::publishControllerOut(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
+{	
+	hrt_abstime curr_time = hrt_absolute_time();
+
+	if(float(curr_time - prev_time) > 1.0f/ 150.0f)
+	{	
+
+		controller_out_s c_sp = {};
+		c_sp.timestamp = hrt_absolute_time();
+		c_sp.timestamp_sample = timestamp_sample;
+		c_sp.tau[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
+		c_sp.tau[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
+		c_sp.tau[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
+		c_sp.f[0] = 0.0f;
+		c_sp.f[1] = 0.0f;
+		c_sp.f[2] = PX4_ISFINITE(_thrust_sp) ? -_thrust_sp : 0.0f; 
+
+		_controller_out_pub.publish(c_sp);
+		prev_time = curr_time;
+	}
+
 }
 
 void MulticopterRateControl::updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt)

@@ -51,6 +51,7 @@
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/controller_out.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -95,6 +96,7 @@ private:
 
 	void publishTorqueSetpoint(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
+	void publishControllerOut(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
 
 	RateControl _rate_control; ///< class for rate control calculations
 
@@ -118,6 +120,9 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+
+	// custom controller_out
+	uORB::Publication<controller_out_s>	_controller_out_pub{ORB_ID(controller_out)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 

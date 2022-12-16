@@ -89,3 +89,5 @@ rtps:
     send:    true
   - msg:     sensor_combined
     send:    true
+  - msg:     controller_out
+    send:    true

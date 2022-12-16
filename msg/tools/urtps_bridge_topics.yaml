@@ -38,8 +38,6 @@ rtps:
   # ...
   - msg:     debug_vect
     receive: true
-  - msg:     gripper_engage_status
-    receive: true
   - msg:     offboard_control_mode
     receive: true
   - msg:     optical_flow
@@ -93,3 +91,5 @@ rtps:
     send:    true
   - msg:     controller_out
     send:    true
+  - msg:     gripper_engage_status
+    receive: true

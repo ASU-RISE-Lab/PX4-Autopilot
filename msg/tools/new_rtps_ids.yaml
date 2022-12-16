@@ -10,8 +10,6 @@ rtps:
     receive: true
   - msg: DebugVect
     receive: true
-  - msg: GripperEngageStatus
-    receive: true
   - msg: OffboardControlMode
     receive: true
   - msg: OpticalFlow
@@ -65,3 +63,5 @@ rtps:
     send: true
   - msg: ControllerOut
     send: true
+  - msg: GripperEngageStatus
+    receive: true

@@ -65,5 +65,3 @@ rtps:
     send: true
   - msg: GripperEngageStatus
     receive: true
-  - msg: ActuatorControls2
-    receive: true

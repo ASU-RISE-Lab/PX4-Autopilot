@@ -287,7 +287,7 @@ MulticopterRateControl::Run()
 			actuators.timestamp = hrt_absolute_time();
 			_actuators_0_pub.publish(actuators);
 
-			// publish aux out to enage gripper when gripper_engage_status is true
+			// publish aux out to enage servo/gripper when gripper_engage_status is true
 			actuator_controls_s aux{};
 			if (engage_gripper){
 				aux.control[1] = 2000;

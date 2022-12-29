@@ -82,3 +82,9 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+
+#
+# Start the Gripper App
+#
+gripper_app start

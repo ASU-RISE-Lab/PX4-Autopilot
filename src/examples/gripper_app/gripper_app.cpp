@@ -37,10 +37,14 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 
+#include <poll.h>
+
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/gripper_engage_status.h>
+
 
 int GripperApp::print_status()
 {
@@ -237,6 +241,22 @@ void GripperApp::parameters_update(bool force)
 		// clear update
 		parameter_update_s update;
 		_parameter_update_sub.copy(&update);
+
+		// update parameters from storage
+		updateParams();
+	}
+}
+
+void GripperApp::gripper_status_update(bool force)
+{
+	// check for parameter updates
+	if (_gripper_engage_status_sub.updated() || force) {
+		// clear engage
+		gripper_engage_status_s engage;
+
+		_gripper_engage_status_sub.copy(&engage);
+
+		flag_engage = engage.status;
 
 		// update parameters from storage
 		updateParams();

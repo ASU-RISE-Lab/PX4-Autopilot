@@ -35,8 +35,11 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/gripper_engage_status.h>
 
 #include <time.h>
 
@@ -84,6 +87,7 @@ private:
 	 * @param force for a parameter update
 	 */
 	void parameters_update(bool force = false);
+	void gripper_status_update(bool force = false);
 
 
 	DEFINE_PARAMETERS(
@@ -93,6 +97,7 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _gripper_engage_status_sub{ORB_ID(gripper_engage_status)};
 
 	// Publish
 	orb_advert_t	_aux_pub = nullptr;
@@ -109,7 +114,7 @@ private:
 	float min = -1.0;
 	float neutral = -0.9;
 
-	double event_duration = 4.0;
+	double event_duration = 20.0;
 
 };
 

@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_GRIPPER_APP
+	bool "gripper_app"
+	default n
+	---help---
+		Enable support for gripper_app

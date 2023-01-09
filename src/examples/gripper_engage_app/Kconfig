@@ -1,5 +1,0 @@
-menuconfig EXAMPLES_GRIPPER_ENGAGE_APP
-	bool "gripper_engage_app"
-	default n
-	---help---
-		Enable support for gripper_engage_app

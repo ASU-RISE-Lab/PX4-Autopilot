@@ -43,6 +43,8 @@
 
 #include <time.h>
 
+#include <stdio.h>
+
 using namespace time_literals;
 
 extern "C" __EXPORT int gripper_app_main(int argc, char *argv[]);
@@ -110,9 +112,9 @@ private:
 	bool flag_disengage = false;
 	bool flag_is_engaged = false;
 
-	float max = 1.0;
-	float min = -1.0;
-	float neutral = -0.9;
+	float max = -1.0;
+	float min = 1.0;
+	float neutral = 0.9;
 
 	double event_duration = 20.0;
 

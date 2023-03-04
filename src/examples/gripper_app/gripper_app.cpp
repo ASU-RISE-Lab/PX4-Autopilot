@@ -170,6 +170,19 @@ void GripperApp::run()
 
 		usleep(20000);
 
+		// check for parameter updates
+		if (_gripper_engage_status_sub.updated()) {
+			// clear engage
+			gripper_engage_status_s engage;
+
+			_gripper_engage_status_sub.copy(&engage);
+
+			flag_engage = engage.status;
+
+			// printf(flag_engage ? "true" : "false");
+
+		}
+
 		/* Set servo positions
 
 		Set the gripper to max,min or neutral position in (-1,1) if no engage/disengage event happen.
@@ -241,22 +254,6 @@ void GripperApp::parameters_update(bool force)
 		// clear update
 		parameter_update_s update;
 		_parameter_update_sub.copy(&update);
-
-		// update parameters from storage
-		updateParams();
-	}
-}
-
-void GripperApp::gripper_status_update(bool force)
-{
-	// check for parameter updates
-	if (_gripper_engage_status_sub.updated() || force) {
-		// clear engage
-		gripper_engage_status_s engage;
-
-		_gripper_engage_status_sub.copy(&engage);
-
-		flag_engage = engage.status;
 
 		// update parameters from storage
 		updateParams();

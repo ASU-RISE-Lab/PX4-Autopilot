@@ -50,6 +50,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/Limits.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 
 class AttitudeControl
 {
@@ -71,6 +72,62 @@ public:
 	void setRateLimit(const matrix::Vector3f &rate_limit) { _rate_limit = rate_limit; }
 
 	/**
+	 * Set current angular velocity 
+	 * @param rate_prev [rad/s] 3D vector containing previous roll, pitch, yaw rates
+	 */
+	void setOmega(const matrix::Vector3f &omega) { _omega = omega; }
+
+	/**
+	 * Get current angular velocity 
+	 * @param rate_prev [rad/s] 3D vector containing previous roll, pitch, yaw rates
+	 */
+	matrix::Vector3f getOmega() const { 
+		return _omega; 
+	}
+
+	/**
+	 * Set previous Rd
+	 * @param rate_prev [rad/s] 3D vector containing previous roll, pitch, yaw rates
+	 */
+	void setRdPrev(const matrix::Dcmf &Rd_prev) { _Rd_prev = Rd_prev; }
+
+	/**
+	 * Get previous Rd
+	 * @param rate_prev [rad/s] 3D vector containing previous roll, pitch, yaw rates
+	 */
+	matrix::Dcmf getRdPrev() const { 
+		return _Rd_prev; 
+	}
+
+	// /**
+	//  * Set previous eOmega
+	//  * @param eOmega [rad/s2] 3D vector containing previous roll, pitch, yaw angular error 
+	//  */
+	// void seteOmegaIntPrev(const matrix::Vector3f &eOmega_prev) { _eOmega_prev = eOmega_prev; }
+
+	// /**
+	//  * Get previous eOmega
+	//  * @param eOmega [rad/s2] 3D vector containing previous roll, pitch, yaw angular error
+	//  */
+	// matrix::Vector3f geteOmegaIntPrev() const { 
+	// 	return _eOmega_prev; 
+	// }
+
+	/**
+	 * Set rate setpoints
+	 * @param rate_prev [rad/s] 3D vector containing previous roll, pitch, yaw rates
+	 */
+	void setRateSp(const matrix::Vector3f &rate_setpoint) { _rate_setpoint = rate_setpoint; }
+
+	/**
+	 * Get rate setpoints
+	 * @param rate_prev [rad/s] 3D vector containing previous roll, pitch, yaw rates
+	 */
+	matrix::Vector3f getRateSp() const { 
+		return _rate_setpoint; 
+	}
+
+	/**
 	 * Set a new attitude setpoint replacing the one tracked before
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
@@ -81,6 +138,12 @@ public:
 		_attitude_setpoint_q.normalize();
 		_yawspeed_setpoint = yawspeed_setpoint;
 	}
+
+	/**
+	 * Set the integral term to 0 to prevent windup
+	 * @see _rate_int
+	 */
+	void resetIntegral() {_eOmega_int.zero(); }
 
 	/**
 	 * Adjust last known attitude setpoint by a delta rotation
@@ -98,13 +161,28 @@ public:
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
 	 */
-	matrix::Vector3f update(const matrix::Quatf &q) const;
+	matrix::Vector3f update(const matrix::Quatf &q, const bool landed);
 
 private:
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
+	matrix::Vector3f _omega;
+	matrix::Dcmf _Rd_prev;
+
+	matrix::Vector3f _rate_setpoint;
+
+	matrix::Vector3f ratesdes;
+
+	matrix::Vector3f pqrdes;
+
+	hrt_abstime _last_run = 0.0;
+
+	matrix::Vector3f _eOmega_int;
+
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize caompared to roll and pitch
 
 	matrix::Quatf _attitude_setpoint_q; ///< latest known attitude setpoint e.g. from position control
 	float _yawspeed_setpoint{0.f}; ///< latest known yawspeed feed-forward setpoint
+
+	math::LowPassFilter2p<matrix::Vector3f> _lp_filter{50.f, 100.f}; // 50, 100 works fine
 };

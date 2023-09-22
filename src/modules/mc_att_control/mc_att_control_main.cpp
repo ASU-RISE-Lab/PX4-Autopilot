@@ -291,6 +291,7 @@ MulticopterAttitudeControl::Run()
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				_landed = vehicle_land_detected.landed;
+				// _maybe_landed = vehicle_land_detected.maybe_landed;
 			}
 		}
 
@@ -329,7 +330,33 @@ MulticopterAttitudeControl::Run()
 				_man_y_input_filter.reset(0.f);
 			}
 
-			Vector3f rates_sp = _attitude_control.update(q);
+			// reset integral if disarmed
+			if (!_v_control_mode.flag_armed) {
+				_attitude_control.resetIntegral();
+			}
+
+			// /* finding rates_sp */
+
+			// Vector3f rates_sp = _attitude_control.update(q);
+
+			// /** Geometric Controller */
+			vehicle_angular_velocity_s angular_velocity;
+
+			_vehicle_angular_velocity_sub.update(&angular_velocity);
+
+			// Vector3f gain_eR = {3.1f, 3.1f, 3.1f};
+			// Vector3f k_eR = gain_eR.emult(_attitude_control.update(q));
+			// Vector3f Omega_d = _attitude_control.getRateSp();
+			// Vector3f Omega{angular_velocity.xyz};
+			// Vector3f gain_eOmega = {0.1f, 0.1f, 0.1f};
+			// Vector3f eOmega = Omega_d - Omega;
+			// Vector3f rates_sp = k_eR - (eOmega * gain_eOmega); // publishing as rates_sp but actually geometric control torque
+
+			Vector3f Omega{angular_velocity.xyz};
+			_attitude_control.setOmega(Omega);
+			bool check_landed = _landed && (_vtol && _vtol_in_transition_mode);
+
+			Vector3f rates_sp = _attitude_control.update(q, check_landed);
 
 			const hrt_abstime now = hrt_absolute_time();
 			autotune_attitude_control_status_s pid_autotune;

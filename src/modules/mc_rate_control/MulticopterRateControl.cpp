@@ -147,7 +147,7 @@ MulticopterRateControl::Run()
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				_landed = vehicle_land_detected.landed;
-				_maybe_landed = vehicle_land_detected.maybe_landed;
+				// _maybe_landed = vehicle_land_detected.maybe_landed;
 			}
 		}
 
